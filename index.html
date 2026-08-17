@@ -1,14 +1,17 @@
 <head>
+    <!-- Добавляем defer, чтобы скрипт загружался параллельно и выполнялся строго до DOMContentLoaded -->
     <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
     <script>
-        // Инициализация VK Bridge при загрузке
-        try {
-            vkBridge.send('VKWebAppInit')
-                .then(() => console.log("VK Bridge успешно запущен!"))
-                .catch(e => console.error("Ошибка при старте VK Bridge:", e));
-        } catch (err) {
-            console.error("vkBridge не доступен:", err);
-        }
+        // Запускаем инициализацию строго после полной загрузки страницы и скриптов
+        window.addEventListener('load', () => {
+            if (window.vkBridge) {
+                vkBridge.send('VKWebAppInit')
+                    .then(() => console.log("VK Bridge успешно запущен!"))
+                    .catch(e => console.error("Ошибка VKWebAppInit:", e));
+            } else {
+                console.error("vkBridge не найден (ошибка загрузки CDN)");
+            }
+        });
 
         async function registration() {
             const results = {
@@ -22,25 +25,27 @@
             const groupId = urlParams.get('vk_group_id');
 
             try {
-                // Если есть ID группы, просим разрешение на отправку сообщений
-                if (groupId) {
+                if (groupId && window.vkBridge) {
                     await vkBridge.send('VKWebAppAllowMessagesFromGroup', {
                         group_id: parseInt(groupId, 10)
                     });
                 }
 
-                // Отправка данных на ваш сервер
-                await fetch('https://vash-sait.ru/api/vk-register', {
+                // Замените URL на реальный адрес вашего бэкенда!
+                /*
+                await fetch('https://ваш-сервер.ru/api/vk-register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: vkUserId, data: results })
                 });
+                */
 
             } catch (vkErr) {
-                console.error("Ошибка при регистрации или пользователь отменил действие:", vkErr);
+                console.error("Ошибка при регистрации:", vkErr);
             } finally {
-                // Закрываем мини-приложение после попытки отправки
-                vkBridge.send('VKWebAppClose', { status: 'success' });
+                if (window.vkBridge) {
+                    vkBridge.send('VKWebAppClose', { status: 'success' });
+                }
             }
         }
     </script>
