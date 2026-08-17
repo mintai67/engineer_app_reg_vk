@@ -28,33 +28,51 @@
 
         // 2. Функция отправки данных
         async function registration() {
-            const results = {
-                'Фамилия': document.getElementById("main_field_1")?.value || '',
-                'Имя': document.getElementById("main_field_2")?.value || '',
-                'Отчество': document.getElementById("main_field_3")?.value || ''
-            };
+    // 1. Собираем ФИО из полей
+    const surname = document.getElementById("main_field_1")?.value.trim() || '';
+    const name = document.getElementById("main_field_2")?.value.trim() || '';
+    const patronymic = document.getElementById("main_field_3")?.value.trim() || '';
 
-            const urlParams = new URLSearchParams(window.location.search);
-            const groupId = urlParams.get('vk_group_id');
+    if (!surname || !name) {
+        alert("Пожалуйста, заполните имя и фамилию!");
+        return;
+    }
 
-            try {
-                if (groupId && window.vkBridge) {
-                    await vkBridge.send('VKWebAppAllowMessagesFromGroup', {
-                        group_id: parseInt(groupId, 10)
-                    });
-                }
+    // 2. Получаем ID группы из URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const groupId = urlParams.get('vk_group_id'); // Наример: 200000000
 
-                alert("Данные сохранены!");
+    // 3. Формируем компактную строку данных (например: Ivanov_Ivan_Ivanovich)
+    // Заменяем пробелы на подчеркивания, чтобы не было спецсимволов
+    const rawData = `${surname}_${name}_${patronymic}`.replace(/\s+/g, '_');
+    
+    // Преобразуем в Base64 для безопасной передачи через URL (опционально)
+    const refData = btoa(unescape(encodeURIComponent(rawData))); 
 
-                // Закрываем приложение ТОЛЬКО после успешного нажатия кнопки
-                if (window.vkBridge) {
-                    vkBridge.send('VKWebAppClose', { status: 'success' });
-                }
-
-            } catch (vkErr) {
-                console.error("Ошибка при регистрации:", vkErr);
+    try {
+        if (window.vkBridge) {
+            // Запрашиваем разрешение на сообщения (если еще не дано)
+            if (groupId) {
+                await vkBridge.send('VKWebAppAllowMessagesFromGroup', {
+                    group_id: parseInt(groupId, 10)
+                });
             }
+
+            // Перенаправляем пользователя в диалог с ботом с параметром ref
+            // Ссылка имеет вид: https://vk.me/publicGROUP_ID?ref=ПОЛЕ_С_ДАННЫМИ
+            const vkMeUrl = `https://vk.me/club${groupId}?ref=${refData}`;
+            
+            // Открываем ссылку через VK Bridge или напрямую
+            await vkBridge.send('VKWebAppOpenURL', { url: vkMeUrl });
+
+            // Закрываем мини-приложение
+            vkBridge.send('VKWebAppClose', { status: 'success' });
         }
+    } catch (error) {
+        console.error("Ошибка при отправке:", error);
+        alert("Не удалось перейти в диалог с ботом.");
+    }
+}
     </script>
 </body>
 </html>
