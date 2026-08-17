@@ -1,18 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
 <head>
-    <!-- Добавляем defer, чтобы скрипт загружался параллельно и выполнялся строго до DOMContentLoaded -->
-    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/index.umd.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация</title>
+    <!-- Подключаем официальный VK Bridge CDN -->
+    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+</head>
+<body>
+    <h2>Форма регистрации</h2>
+
+    <input type="text" id="main_field_1" placeholder="Фамилия"><br><br>
+    <input type="text" id="main_field_2" placeholder="Имя"><br><br>
+    <input type="text" id="main_field_3" placeholder="Отчество"><br><br>
+    
+    <button onclick="registration()">Отправить</button>
+
     <script>
-        // Запускаем инициализацию строго после полной загрузки страницы и скриптов
-        window.addEventListener('load', () => {
+        // 1. Инициализируем VK Bridge строго при загрузке окна
+        window.onload = () => {
             if (window.vkBridge) {
                 vkBridge.send('VKWebAppInit')
-                    .then(() => console.log("VK Bridge успешно запущен!"))
-                    .catch(e => console.error("Ошибка VKWebAppInit:", e));
-            } else {
-                console.error("vkBridge не найден (ошибка загрузки CDN)");
+                    .then(() => console.log('VK Bridge успешно запущен!'))
+                    .catch(err => console.error('Ошибка инициализации:', err));
             }
-        });
+        };
 
+        // 2. Функция отправки данных
         async function registration() {
             const results = {
                 'Фамилия': document.getElementById("main_field_1")?.value || '',
@@ -21,7 +35,6 @@
             };
 
             const urlParams = new URLSearchParams(window.location.search);
-            const vkUserId = urlParams.get('vk_user_id');
             const groupId = urlParams.get('vk_group_id');
 
             try {
@@ -31,25 +44,20 @@
                     });
                 }
 
-                // Замените URL на реальный адрес вашего бэкенда!
-                /*
-                await fetch('https://ваш-сервер.ru/api/vk-register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: vkUserId, data: results })
-                });
-                */
+                alert("Данные сохранены!");
 
-            } catch (vkErr) {
-                console.error("Ошибка при регистрации:", vkErr);
-            } finally {
+                // Закрываем приложение ТОЛЬКО после успешного нажатия кнопки
                 if (window.vkBridge) {
                     vkBridge.send('VKWebAppClose', { status: 'success' });
                 }
+
+            } catch (vkErr) {
+                console.error("Ошибка при регистрации:", vkErr);
             }
         }
     </script>
-</head>
+</body>
+</html>
 <div>
     <h2>Регистрация</h2>
      <div style="font-family: Verdana, sans-serif; color: #333;">
