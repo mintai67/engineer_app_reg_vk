@@ -20,55 +20,36 @@
 
         // 2. Функция отправки данных
         async function registration() {
-    const surname = document.getElementById("main_field_1")?.value.trim() || '';
-    const name = document.getElementById("main_field_2")?.value.trim() || '';
-    const patronymic = document.getElementById("main_field_3")?.value.trim() || '';
-
-    if (!surname || !name) {
-        alert("Пожалуйста, заполните имя и фамилию!");
-        return;
-    }
+    const results = {
+        'Фамилия': document.getElementById("main_field_1")?.value || '',
+        'Имя': document.getElementById("main_field_2")?.value || '',
+        'Отчество': document.getElementById("main_field_3")?.value || ''
+    };
 
     const urlParams = new URLSearchParams(window.location.search);
     const groupId = urlParams.get('vk_group_id');
 
-    // 1. Формируем безопасную строку без спецсимволов Base64
-    // Используем простой URL-encode формат: Ivanov_Ivan_Ivanovich
-    const rawData = `${surname}_${name}_${patronymic}`.replace(/\s+/g, '_');
-    const safeRef = encodeURIComponent(rawData); 
-
-    // 2. Пытаемся запросить разрешение на сообщения (без блокировки выполнения)
-    if (groupId && window.vkBridge) {
-        try {
+    try {
+        if (groupId) {
             await vkBridge.send('VKWebAppAllowMessagesFromGroup', {
                 group_id: parseInt(groupId, 10)
             });
-        } catch (e) {
-            console.warn("Пользователь отменил шаг с разрешениями или произошла ошибка:", e);
         }
-    }
-    let groupId = urlParams.get('vk_group_id');
 
-// Если вы запускаете приложение из меню группы, но параметр не пришел,
-// убедитесь, что модуль убирает знак "-" (если ID передан со знаком минус)
-    if (groupId) {
-        groupId = Math.abs(parseInt(groupId, 10));
-}
+        // Вызов Supabase Edge Function
+        await fetch('https://<project-ref>.supabase.co/functions/v1/vk-register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                launchParams: window.location.search, // Передаем параметры запуска VK
+                data: results 
+            })
+        });
 
-    // 3. Формируем прямую ссылку на диалог с сообществом
-    const vkMeUrl = `https://vk.me/club${groupId}?ref=${safeRef}`;
-
-    // 4. Открываем ссылку через стандартный переход браузера (надежнее, чем VK Bridge)
-    try {
-        if (window.vkBridge) {
-            // Закрываем мини-приложение
-            vkBridge.send('VKWebAppClose', { status: 'success' });
-        }
-        // Перенаправляем прямо в диалог с ботом
-        window.top.location.href = vkMeUrl;
-    } catch (err) {
-        // Запасной фоллбек, если iFrame блокирует window.top
-        window.open(vkMeUrl, '_blank');
+    } catch (vkErr) {
+        console.error("Ошибка при регистрации:", vkErr);
+    } finally {
+        vkBridge.send('VKWebAppClose', { status: 'success' });
     }
 }
     </script>
