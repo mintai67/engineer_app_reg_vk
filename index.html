@@ -36,20 +36,26 @@
             });
         }
 
-        // Вызов Supabase Edge Function
-        await fetch('https://gxleancanmleiylcdoop.supabase.co/functions/v1/vk-register', {
+        // 1. Ждем ответа от Supabase Edge Function
+        const res = await fetch('https://<project-ref>.supabase.co/functions/v1/vk-register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                launchParams: window.location.search, // Передаем параметры запуска VK
+                launchParams: window.location.search,
                 data: results 
             })
         });
 
+        if (res.ok) {
+            console.log("Данные успешно сохранены!");
+            // 2. Закрываем Mini App ТОЛЬКО после успешной отправки
+            vkBridge.send('VKWebAppClose', { status: 'success' });
+        } else {
+            console.error("Ошибка сервера:", await res.text());
+        }
+
     } catch (vkErr) {
         console.error("Ошибка при регистрации:", vkErr);
-    } finally {
-        vkBridge.send('VKWebAppClose', { status: 'success' });
     }
 }
     </script>
