@@ -36,15 +36,22 @@
             });
         }
 
-        // 1. Ждем ответа от Supabase Edge Function
-        const res = await fetch('https://gxleancanmleiylcdoop.supabase.co/functions/v1/vk-register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                launchParams: window.location.search,
-                data: results 
-            })
-        });
+        // 1. Возьмите ваш anon key в Supabase Dashboard:
+// Project Settings -> API -> Project API keys -> anon (public)
+const SUPABASE_ANON_KEY = "sb_publishable_DK1k8GcJ5wmSTGGxAcp9YA_tYu9PsHv";
+
+await fetch('https://gxleancanmleiylcdoop.supabase.co/functions/v1/vk-register', {
+    method: 'POST',
+    headers: { 
+        'Content-Type': 'application/json',
+        // Передаем токен авторизации для шлюза Supabase:
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+    },
+    body: JSON.stringify({ 
+        launchParams: window.location.search,
+        data: results 
+    })
+});
 
         if (res.ok) {
             console.log("Данные успешно сохранены!");
